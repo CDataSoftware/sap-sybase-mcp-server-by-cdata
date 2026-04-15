@@ -1,44 +1,20 @@
 package com.cdata.mcp.tests;
 
+import com.cdata.mcp.SqlValidator;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.regex.Pattern;
-
 /**
  * Tests for SQL validation logic used in RunQueryTool.
- * These tests verify the regex patterns without needing the full tool context.
  */
 public class SqlValidationTests {
 
-  // Mirror the patterns from RunQueryTool for testing
-  private static final Pattern DANGEROUS_SQL_PATTERN = Pattern.compile(
-      "^\\s*(INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|EXEC|EXECUTE|GRANT|REVOKE|MERGE|CALL)\\b",
-      Pattern.CASE_INSENSITIVE
-  );
-
-  private static final Pattern SELECT_PATTERN = Pattern.compile(
-      "^\\s*(SELECT|WITH)\\b",
-      Pattern.CASE_INSENSITIVE
-  );
-
   private void assertSqlBlocked(String sql, String description) {
-    boolean hasDangerous = DANGEROUS_SQL_PATTERN.matcher(sql.trim()).find();
-    boolean isSelect = SELECT_PATTERN.matcher(sql.trim()).find();
-
-    if (hasDangerous || !isSelect) {
-      // Expected - SQL should be blocked
-      return;
-    }
-    Assert.fail("SQL should have been blocked: " + description + " - " + sql);
+    Assert.assertFalse("SQL should be blocked: " + description, SqlValidator.isValidSelectQuery(sql));
   }
 
   private void assertSqlAllowed(String sql, String description) {
-    boolean hasDangerous = DANGEROUS_SQL_PATTERN.matcher(sql.trim()).find();
-    boolean isSelect = SELECT_PATTERN.matcher(sql.trim()).find();
-
-    Assert.assertFalse("SQL should not match dangerous pattern: " + description, hasDangerous);
-    Assert.assertTrue("SQL should match SELECT pattern: " + description, isSelect);
+    Assert.assertTrue("SQL should be allowed: " + description, SqlValidator.isValidSelectQuery(sql));
   }
 
   // Valid SELECT queries
@@ -187,5 +163,27 @@ public class SqlValidationTests {
   @Test
   public void setBlocked() {
     assertSqlBlocked("SET @var = 1", "SET statement");
+  }
+
+  // Empty/null checks
+  @Test
+  public void emptyStringBlocked() {
+    assertSqlBlocked("", "Empty string");
+  }
+
+  @Test
+  public void whitespaceOnlyBlocked() {
+    assertSqlBlocked("   ", "Whitespace only");
+  }
+
+  // Statement chaining
+  @Test
+  public void statementChainingBlocked() {
+    assertSqlBlocked("SELECT * FROM users; DROP TABLE users", "Statement chaining");
+  }
+
+  @Test
+  public void trailingSemicolonAllowed() {
+    assertSqlAllowed("SELECT * FROM users;", "Trailing semicolon");
   }
 }
