@@ -5,6 +5,8 @@ import io.modelcontextprotocol.server.McpServer;
 import io.modelcontextprotocol.server.McpServerFeatures;
 import io.modelcontextprotocol.server.McpSyncServer;
 import io.modelcontextprotocol.spec.McpSchema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -13,6 +15,7 @@ import java.util.List;
 
 public class TableMetadataResource implements IResource {
   private Config config;
+  private Logger logger = LoggerFactory.getLogger(TableMetadataResource.class);
   private static final String[][] META_COLS = new String[][] {
       new String[] { "TABLE_CAT", "Catalog" },
       new String[] { "TABLE_SCHEM", "Schema" },
@@ -49,7 +52,9 @@ public class TableMetadataResource implements IResource {
         return new McpSchema.ReadResourceResult(contents);
       }
     } catch (Exception ex) {
-      throw new RuntimeException("Error: " + ex.getMessage());
+      // Log the full error but return a generic message to avoid leaking schema info
+      this.logger.error("TableMetadataResource failed", ex);
+      throw new RuntimeException("Failed to read resource. Check server logs for details.");
     }
   }
 

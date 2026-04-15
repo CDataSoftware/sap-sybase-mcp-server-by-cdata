@@ -125,8 +125,15 @@ public class Config {
   public String quoteIdentifier(String id) {
     String open = this.sqlInfo.getProperty(ID_QUOTE_OPEN_CHAR);
     String close = this.sqlInfo.getProperty(ID_QUOTE_CLOSE_CHAR);
-    // TODO: Properly escape things
-    return open + id + close;
+
+    // Escape embedded close quote characters by doubling them
+    // This is the standard SQL escaping mechanism for quoted identifiers
+    String escaped = id;
+    if (close != null && !close.isEmpty()) {
+      escaped = id.replace(close, close + close);
+    }
+
+    return open + escaped + close;
   }
 
   public Connection newConnection() throws SQLException {
