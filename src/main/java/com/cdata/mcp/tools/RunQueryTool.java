@@ -50,9 +50,18 @@ public class RunQueryTool implements ITool {
   @Override
   public McpSchema.CallToolResult run(Map<String, Object> args) {
     String sql = (String)args.get("sql");
-    this.logger.info("RunQueryTool({})", sql);
+    // Log only that a query was executed, not the full query content (may contain PII)
+    this.logger.info("RunQueryTool executing query");
+    this.logger.debug("RunQueryTool query: {}", sql);
+
     try {
+      // Validate that this is a SELECT-only query
+      SqlValidator.validateSelectOnly(sql);
+
       try (Connection cn = config.newConnection()) {
+        // Set connection to read-only mode for defense in depth
+        cn.setReadOnly(true);
+
         List<McpSchema.Content> content = new ArrayList<>();
         String csv = queryToCsv(cn, sql);
 
@@ -63,8 +72,14 @@ public class RunQueryTool implements ITool {
         );
         return new McpSchema.CallToolResult(content, false);
       }
-    } catch ( Exception ex ) {
-      throw new RuntimeException("ERROR: " + ex.getMessage());
+    } catch (SecurityException ex) {
+      // Security violations get specific error messages
+      this.logger.warn("Query blocked by security validation: {}", ex.getMessage());
+      throw new RuntimeException("Security error: " + ex.getMessage());
+    } catch (Exception ex) {
+      // Generic error for other exceptions to avoid leaking schema info
+      this.logger.error("Query execution failed", ex);
+      throw new RuntimeException("Query execution failed. Check server logs for details.");
     }
   }
 

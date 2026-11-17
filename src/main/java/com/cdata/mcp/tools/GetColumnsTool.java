@@ -59,7 +59,8 @@ public class GetColumnsTool implements ITool {
         return new McpSchema.CallToolResult(content, false);
       }
     } catch ( Exception ex ) {
-      throw new RuntimeException("ERROR: " + ex.getMessage());
+      this.logger.error("GetColumnsTool failed", ex);
+      throw new RuntimeException("Failed to retrieve columns. Check server logs for details.");
     }
   }
 

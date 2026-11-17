@@ -70,7 +70,8 @@ public class GetTablesTool implements ITool {
         return new McpSchema.CallToolResult(content, false);
       }
     } catch ( Exception ex ) {
-      throw new RuntimeException("ERROR: " + ex.getMessage());
+      this.logger.error("GetTablesTool failed", ex);
+      throw new RuntimeException("Failed to retrieve tables. Check server logs for details.");
     }
   }
 
